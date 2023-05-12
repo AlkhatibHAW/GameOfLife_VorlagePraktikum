@@ -35,9 +35,11 @@ public class Application {
      */
     private static Stream<Cell> createCellStream(float p) {
         // TODO
+        //Erstelle ein Random Objekt
         Random random = new Random();
+        //Lambda Ausdruck, vergleicht die random Float Zahl mit dem übergebenen Argument.
+        //Wenn ersteres größer ist, dann wird eine lebende Zelle generiert, ansonsten eine tote Zell
         Stream<Cell> stream = Stream.generate(() -> random.nextFloat() >= p ? new Cell(1): new Cell(0));
-        
         return stream;
     }
     
@@ -53,46 +55,55 @@ public class Application {
         // Create and start a LifeThreadPool with 50 threads
         LifeThreadPool pool = new LifeThreadPool(50);
         pool.start();
-        
+        //Hier geht der Spaß los:
         while (true) {
             Life life = new Life(playground);
             for (int xi = 0; xi < DIM_X; xi++) {
                 for (int yi = 0; yi < DIM_Y; yi++) {
-                                       
                     // Submit new life.process() call as runable to the pool
                     // TODO
+                    //zwei fiktiv finale Variablen für den Lambda Ausdruck.
                     int finalXi = xi;
                     int finalYi = yi;
+                    //Pro Zelle füge ein Runnable Objekt zu der Warteschlange ein
+                    //In diesem Fall ist es, ein Objekt, dass die Methode process()
+                    //von dem Objekt der Klasse Life mit der jeweiligen Zell als Argument
+                    //aufruft
                     pool.submit(
                             () -> life.process(playground.getCell(finalXi, finalYi), finalXi, finalYi));
-                    
+
                 }
+
             }
 
             // Wait for all threads to finish this generation
             // TODO
             try {
-                pool.joinAndExit();
+                //Hier wird der Main Thread durch die barrier() Methode gestoppt, bis
+                //die tasks Warteschlange leer ist.
+                pool.barrier();
             } catch (InterruptedException e) {
+                pool.interrupt();
                 throw new RuntimeException(e);
             }
 
             // Submit switch to next generation for each cell and force a
             // window repaint to update the graphics
             pool.submit(() -> {
+                //Diesmal ist das auszuführende Runnable Objekt, eins mit der folgenden Methode;
+                //diese Objekte werden dann pro Zelle in die tasks Warteschlange eingefügt
                 playground.asList().forEach(cell -> cell.nextGen());
                 window.validate();
                 window.repaint();
             });
-            pool.interrupt();
             // Wait SLEEP milliseconds until the next generation
            // TODO
             try {
                 Thread.sleep(SLEEP);
             } catch (InterruptedException e) {
+                pool.interrupt();
                 throw new RuntimeException(e);
             }
         }
-
     }
 }

@@ -34,20 +34,10 @@ public class LifeThreadPool {
      */
     public void barrier() throws InterruptedException {
         // TODO
-        while (true){
-            boolean allThreadsDeactivated = true ;
-
-            for(LifeThread thread : threads){
-                if(thread.isAlive()){
-                    allThreadsDeactivated = false;
-                    break;
-                }
-            }
-            if(allThreadsDeactivated && queueIsEmpty()) {
-                return;
-            }
-            Thread.sleep(10);
+        while(!tasks.isEmpty()){
+            //halte den Main Thread ab, solange die Warteschlange nicht leer ist;
         }
+        //Sie ist leer, also Main Thread geht weiter
     }
 
     /**
@@ -56,6 +46,7 @@ public class LifeThreadPool {
     public void interrupt() {
         // TODO Nutzen Sie Streams!
         Arrays.stream(threads).forEach(t -> t.interrupt());
+        //hole jeden Thread und unterbreche ihn
 
     }
 
@@ -69,9 +60,6 @@ public class LifeThreadPool {
         // TODO
         barrier();
         interrupt();
-        for(LifeThread thread : threads){
-            thread.join();
-        }
     }
     /**
      * Adds a task to the queue of this pool.
@@ -79,7 +67,14 @@ public class LifeThreadPool {
      * @param task Runnable containing the work to be done
      */
     public void submit(Runnable task) {
-        tasks.add(task);
+        //Da unser Monitor Objekt tasks ist, also das Objekt, das jeweils von einem Thread benutzt werden soll
+        //synchronisieren wir es, wo immer es im Code auftaucht
+        synchronized (tasks) {
+            tasks.add(task);
+            //benachrichtige tasks, dass es nicht mehr warten muss
+            //wichtig für die NextTask() Methode
+            tasks.notify();
+        }
     }
 
     /**
@@ -90,11 +85,16 @@ public class LifeThreadPool {
      * @throws InterruptedException
      */
     public Runnable nextTask() throws InterruptedException {
+        //Nochmal: Es ist wichtig tasks immer synchron zu halten
         synchronized (tasks){
-            while(queueIsEmpty()){
+            while(tasks.isEmpty()){
+                //Wenn tasks leer ist, wird es warten, bis es von submit benachrichtigt wird
                 tasks.wait();
             }
+            //Dann entferne ein auszuführendes Objekt von der Warteschlange und gib es weiter.
+            //In diesem Fall geht es weiter an den ausführenden Thread, der gerade einzeln zugreift
             return tasks.remove();
+
         }
     }
 
@@ -106,8 +106,5 @@ public class LifeThreadPool {
             threads[i] = new LifeThread(this);
             threads[i].start();
         }
-    }
-    private boolean queueIsEmpty(){
-        return tasks.size() == 0;
     }
 }

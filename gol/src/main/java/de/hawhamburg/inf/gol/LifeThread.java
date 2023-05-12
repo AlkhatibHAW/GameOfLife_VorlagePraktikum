@@ -28,9 +28,12 @@ public class LifeThread extends Thread {
     
     @Override
     public void run() {
+        //solange das nicht unterbrochen ist....
         while (!isInterrupted) {
             try {
+                //nimm das nächste auszuführende Objekt
                 Runnable task = pool.nextTask();
+                //Und führe es aus
                 task.run();
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
