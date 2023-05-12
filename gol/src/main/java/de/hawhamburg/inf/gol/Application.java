@@ -35,8 +35,10 @@ public class Application {
      */
     private static Stream<Cell> createCellStream(float p) {
         // TODO
+        Random random = new Random();
+        Stream<Cell> stream = Stream.generate(() -> random.nextFloat() >= p ? new Cell(1): new Cell(0));
         
-        return null; // FIXME
+        return stream;
     }
     
     public static void main(String[] args) {
@@ -59,22 +61,37 @@ public class Application {
                                        
                     // Submit new life.process() call as runable to the pool
                     // TODO
+                    int finalXi = xi;
+                    int finalYi = yi;
+                    pool.submit(
+                            () -> life.process(playground.getCell(finalXi, finalYi), finalXi, finalYi));
                     
                 }
             }
 
             // Wait for all threads to finish this generation
             // TODO
-            
+            try {
+                pool.joinAndExit();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+
             // Submit switch to next generation for each cell and force a
             // window repaint to update the graphics
             pool.submit(() -> {
                 playground.asList().forEach(cell -> cell.nextGen());
+                window.validate();
                 window.repaint();
             });
-            
+            pool.interrupt();
             // Wait SLEEP milliseconds until the next generation
            // TODO
+            try {
+                Thread.sleep(SLEEP);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
         }
 
     }

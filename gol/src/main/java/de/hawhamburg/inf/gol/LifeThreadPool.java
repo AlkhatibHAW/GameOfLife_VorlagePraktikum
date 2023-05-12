@@ -1,7 +1,10 @@
 package de.hawhamburg.inf.gol;
 
+import java.util.Arrays;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Queue;
+import java.lang.*;
 import java.util.stream.Stream;
 
 /**
@@ -12,70 +15,99 @@ import java.util.stream.Stream;
 public class LifeThreadPool {
     /* Unsynchronized Queue of Runnables */
     private final Queue<Runnable> tasks = new LinkedList<>();
-    
+
     /* Number of threads managed by this pool */
     private final int numThreads;
-    
+
     /* The collection of LifeThread instances forming this pool */
     private final LifeThread[] threads;
-    
+
     public LifeThreadPool(int numThreads) {
         this.numThreads = numThreads;
         this.threads = new LifeThread[numThreads];
     }
-    
+
     /**
      * This method will block until the queue of tasks has been emptied by the
      * running threads.
-     * @throws InterruptedException 
+     * @throws InterruptedException
      */
     public void barrier() throws InterruptedException {
         // TODO
+        while (true){
+            boolean allThreadsDeactivated = true ;
+
+            for(LifeThread thread : threads){
+                if(thread.isAlive()){
+                    allThreadsDeactivated = false;
+                    break;
+                }
+            }
+            if(allThreadsDeactivated && queueIsEmpty()) {
+                return;
+            }
+            Thread.sleep(10);
+        }
     }
-    
+
     /**
      * Calls interrupt() on every thread in this pool.
      */
     public void interrupt() {
         // TODO Nutzen Sie Streams!
+        Arrays.stream(threads).forEach(t -> t.interrupt());
+
     }
-    
+
     /**
      * Waits for all tasks to finish and calls interrupt on every thread. This
      * method is identical to synchronized calling barrier() and interrupt().
-     * 
-     * @throws InterruptedException 
+     *
+     * @throws InterruptedException
      */
     public void joinAndExit() throws InterruptedException {
         // TODO
-    
+        barrier();
+        interrupt();
+        for(LifeThread thread : threads){
+            thread.join();
+        }
+    }
     /**
      * Adds a task to the queue of this pool.
-     * 
-     * @param task Runnable containing the work to be done 
+     *
+     * @param task Runnable containing the work to be done
      */
     public void submit(Runnable task) {
-        // TODO
+        tasks.add(task);
     }
-    
+
     /**
      * Removes and returns the next task from the queue of this pool.
      * This method blocks if the queue is currently empty.
-     * 
+     *
      * @return Next task from the pool queue
-     * @throws InterruptedException 
+     * @throws InterruptedException
      */
     public Runnable nextTask() throws InterruptedException {
-        // TODO
+        synchronized (tasks){
+            while(queueIsEmpty()){
+                tasks.wait();
+            }
+            return tasks.remove();
+        }
     }
-    
+
     /**
      * Start all threads in this pool.
      */
     public void start() {
         for (int i = 0; i < numThreads; i++) {
-            threads[i] = ..
-            // TODO
+            threads[i] = new LifeThread(this);
+            threads[i].start();
         }
+    }
+    private boolean queueIsEmpty(){
+        return tasks.size() == 0;
     }
 }

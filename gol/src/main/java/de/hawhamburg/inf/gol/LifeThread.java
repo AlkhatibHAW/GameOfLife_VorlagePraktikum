@@ -29,7 +29,12 @@ public class LifeThread extends Thread {
     @Override
     public void run() {
         while (!isInterrupted) {
-            // TODO
+            try {
+                Runnable task = pool.nextTask();
+                task.run();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 }
